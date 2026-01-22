@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Beginner Workout</title>
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Tailwind CSS -->
+    <script src="./tailwind.js"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="./react.production.min.js"></script>
+    <script crossorigin src="./react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="./babel.min.js"></script>
+
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-slate-900">
+    <!-- Background Music -->
+    <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Icons as Components (Using FontAwesome)
+        const PlayIcon = ({ size = 24, className = "" }) => (
+            <i className={`fa-solid fa-play ${className}`} style={{ fontSize: size }}></i>
+        );
+        const RotateCcwIcon = ({ size = 24, className = "" }) => (
+            <i className={`fa-solid fa-rotate-left ${className}`} style={{ fontSize: size }}></i>
+        );
+        const ChevronRightIcon = ({ size = 24, className = "" }) => (
+            <i className={`fa-solid fa-chevron-right ${className}`} style={{ fontSize: size }}></i>
+        );
+        const ChevronLeftIcon = ({ size = 24, className = "" }) => (
+            <i className={`fa-solid fa-chevron-left ${className}`} style={{ fontSize: size }}></i>
+        );
+        const CheckIcon = ({ size = 24, className = "" }) => (
+            <i className={`fa-solid fa-check ${className}`} style={{ fontSize: size }}></i>
+        );
+        const ClockIcon = ({ size = 24, className = "" }) => (
+            <i className={`fa-regular fa-clock ${className}`} style={{ fontSize: size }}></i>
+        );
+
+        const workoutData = [
+            {
+                id: 'start',
+                type: 'intro',
+                title: "Beginner Routine",
+                description: "Ready to start your training?",
+                details: "Focus on form over speed. Ensure you have water nearby."
+            },
+            // Warm-up
+            { id: 'w1', type: 'exercise', category: 'Warm-up', title: "Arm Circles", reps: "15 Forward / 15 Backward", details: "Stand tall. Make large, controlled circles with your arms.", timer: 0 },
+            { id: 'w2', type: 'exercise', category: 'Warm-up', title: "Head Rotations", reps: "10 Left / 10 Right", details: "Gently rotate your head. Do not force the movement.", timer: 0 },
+            { id: 'w3', type: 'exercise', category: 'Warm-up', title: "Torso Twists", reps: "50 Total (25 per side)", details: "Keep hips forward, rotate from the waist.", timer: 0 },
+            { id: 'w4', type: 'exercise', category: 'Warm-up', title: "Jumping Jacks", reps: "35 Reps", details: "Land softly on the balls of your feet.", timer: 0 },
+            { id: 'w5', type: 'exercise', category: 'Warm-up', title: "Leg Stretches", reps: "3 Variations", details: "Hold each stretch for 20 seconds.", timer: 20 },
+            // Core & Strength
+            { id: 'c1', type: 'exercise', category: 'Core & Strength', title: "Planks", reps: "4 Sets", details: "Keep your back straight and core tight.", timer: 30, isRest: false },
+            { id: 'c2', type: 'exercise', category: 'Core & Strength', title: "Squats", reps: "4 Sets x 15 Reps", details: "Keep weight in heels. Rest 30s between sets.", timer: 30, isRest: true },
+            { id: 'c3', type: 'exercise', category: 'Core & Strength', title: "Slow Push-ups", reps: "4 Sets x 5 Reps", details: "5 sec down, 5 sec up. Use knees if needed. Rest 30s between sets.", timer: 30, isRest: true },
+            { id: 'c4', type: 'exercise', category: 'Core & Strength', title: "Cross Crunches", reps: "3 Sets x 20 Reps", details: "Elbow to opposite knee. Rest 1 minute between sets.", timer: 60, isRest: true },
+            { id: 'c5', type: 'exercise', category: 'Core & Strength', title: "Diamond Push-ups", reps: "4 Sets x 5 Reps", details: "Hands close together forming a diamond. Slow tempo.", timer: 30, isRest: true },
+            { id: 'c6', type: 'exercise', category: 'Core & Strength', title: "Full Body Circuit", reps: "4 Sets x 20 Reps", details: "Target biceps, triceps, back, etc. Use bodyweight or dumbbells. Rest 30s.", timer: 30, isRest: true },
+            { id: 'c7', type: 'exercise', category: 'Core & Strength', title: "Calf Raises", reps: "4 Sets x 30 Reps", details: "Stand near a wall for balance. Lift onto tiptoes. Rest 30s.", timer: 30, isRest: true },
+            { id: 'c8', type: 'exercise', category: 'Core & Strength', title: "Side Planks", reps: "Hold 40s per side", details: "Keep your body in a straight line.", timer: 40, isRest: false },
+            // Cool Down
+            { id: 'cd1', type: 'exercise', category: 'Cool Down', title: "Cardio Activation", reps: "10 Minutes", details: "Walk outdoors with good posture.", timer: 600 },
+            { id: 'end', type: 'completion', title: "Workout Complete!", description: "Great job today.", details: "Drink water and rest." }
+        ];
+
+        function WorkoutApp() {
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(0);
+            const [isActive, setIsActive] = useState(false);
+
+            const currentStep = workoutData[currentIndex];
+            const totalExercises = workoutData.length - 2;
+            const currentProgress = currentIndex > 0 ? currentIndex - 1 : 0;
+            
+            // Helper to control the audio element outside React root
+            const controlAudio = (action) => {
+                const audio = document.getElementById('bg-music');
+                if (audio) {
+                    if (action === 'play') audio.play().catch(e => console.log("Audio play prevented:", e));
+                    if (action === 'pause') audio.pause();
+                    if (action === 'reset') {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }
+                }
+            };
+
+            useEffect(() => {
+                let interval = null;
+                if (isActive && timeLeft > 0) {
+                    interval = setInterval(() => {
+                        setTimeLeft(timeLeft - 1);
+                    }, 1000);
+                } else if (timeLeft === 0 && isActive) {
+                    setIsActive(false);
+                    playBeep();
+                }
+                return () => clearInterval(interval);
+            }, [isActive, timeLeft]);
+
+            useEffect(() => {
+                setIsActive(false);
+                if (currentStep.timer) {
+                    setTimeLeft(currentStep.timer);
+                } else {
+                    setTimeLeft(0);
+                }
+
+                // Stop music when finishing the workout
+                if (currentStep.type === 'completion') {
+                    controlAudio('reset');
+                }
+            }, [currentIndex]);
+
+            const playBeep = () => {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    const ctx = new AudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.5);
+                }
+            };
+
+            const nextStep = () => {
+                // Play music when starting the workout (leaving intro)
+                if (currentIndex === 0) {
+                    controlAudio('play');
+                }
+
+                if (currentIndex < workoutData.length - 1) {
+                    setCurrentIndex(prev => prev + 1);
+                }
+            };
+
+            const prevStep = () => {
+                // Stop music if going back to the intro
+                if (currentIndex === 1) {
+                    controlAudio('reset');
+                }
+
+                if (currentIndex > 0) {
+                    setCurrentIndex(prev => prev - 1);
+                }
+            };
+
+            const toggleTimer = () => {
+                setIsActive(!isActive);
+            };
+
+            const resetTimer = () => {
+                setIsActive(false);
+                setTimeLeft(currentStep.timer || 0);
+            };
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            };
+
+            if (currentStep.type === 'intro') {
+                return (
+                    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                        <div className="max-w-md w-full text-center space-y-8">
+                            <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-blue-500/30 animate-pulse">
+                                <PlayIcon size={40} className="ml-2" />
+                            </div>
+                            <div>
+                                <h1 className="text-4xl font-bold mb-2">{currentStep.title}</h1>
+                                <p className="text-xl text-slate-300">{currentStep.description}</p>
+                            </div>
+                            <p className="text-sm text-slate-400">{currentStep.details}</p>
+                            <button 
+                                onClick={nextStep}
+                                className="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all py-4 rounded-xl text-xl font-bold shadow-lg mt-8"
+                            >
+                                Start Workout
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (currentStep.type === 'completion') {
+                return (
+                    <div className="min-h-screen bg-green-900 text-white flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+                            <CheckIcon size={48} />
+                        </div>
+                        <h1 className="text-4xl font-bold mb-4">{currentStep.title}</h1>
+                        <p className="text-xl mb-8 text-green-100">{currentStep.description}</p>
+                        <button 
+                            onClick={() => setCurrentIndex(0)}
+                            className="bg-white text-green-900 px-8 py-3 rounded-full font-bold hover:bg-gray-100 active:scale-95 transition-all"
+                        >
+                            Back to Start
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+                    <div className="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-10 safe-top">
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">{currentStep.category}</span>
+                            <span className="text-xs text-slate-400">Step {currentProgress} of {totalExercises}</span>
+                        </div>
+                        <div className="h-2 w-24 bg-slate-200 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-blue-600 transition-all duration-300" 
+                                style={{ width: `${(currentProgress / totalExercises) * 100}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col p-6 max-w-md mx-auto w-full justify-center">
+                        <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-slate-100 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
+                            
+                            <h2 className="text-3xl font-black text-slate-800 mb-2 leading-tight">
+                                {currentStep.title}
+                            </h2>
+                            
+                            <div className="text-xl font-bold text-blue-600 mb-4 bg-blue-50 inline-block px-3 py-1 rounded-lg">
+                                {currentStep.reps}
+                            </div>
+
+                            <p className="text-slate-600 leading-relaxed mb-6">
+                                {currentStep.details}
+                            </p>
+
+                            {currentStep.timer > 0 && (
+                                <div className={`rounded-2xl p-4 mb-2 transition-colors duration-300 ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-semibold text-sm flex items-center gap-2">
+                                            <ClockIcon size={16} />
+                                            {currentStep.isRest ? 'Rest Timer' : 'Duration'}
+                                        </span>
+                                        <button onClick={resetTimer} className="p-1 hover:bg-white/20 rounded-full transition-colors">
+                                            <RotateCcwIcon size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="text-center py-2">
+                                        <div className="text-5xl font-mono font-bold tracking-wider">
+                                            {formatTime(timeLeft)}
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={toggleTimer}
+                                        className={`w-full py-3 rounded-xl font-bold mt-2 transition-colors ${
+                                            isActive 
+                                            ? 'bg-white text-blue-600 hover:bg-slate-100' 
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200'
+                                        }`}
+                                    >
+                                        {isActive ? 'Pause' : 'Start Timer'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 border-t border-slate-100 sticky bottom-0 z-10 pb-8 safe-bottom">
+                        <div className="max-w-md mx-auto flex gap-4">
+                            <button 
+                                onClick={prevStep}
+                                className="flex-1 bg-slate-100 text-slate-500 hover:bg-slate-200 active:scale-95 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
+                            >
+                                <ChevronLeftIcon size={20} /> Back
+                            </button>
+                            
+                            <button 
+                                onClick={nextStep}
+                                className="flex-[2] bg-slate-900 text-white hover:bg-slate-800 active:scale-95 py-4 rounded-xl font-bold text-lg shadow-xl shadow-slate-200 flex items-center justify-center gap-2 transition-all"
+                            >
+                                Next Exercise <ChevronRightIcon size={20} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<WorkoutApp />);
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
